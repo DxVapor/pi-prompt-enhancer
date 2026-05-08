@@ -1,4 +1,4 @@
 node_modules/
-.pi/sessions/
+.pi/
 *.log
 .DS_Store

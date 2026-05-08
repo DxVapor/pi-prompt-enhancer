@@ -1,20 +1,54 @@
-# pi-prompt-enhancer
+# @dxvapor/pi-prompt-enhancer
 
-A fork of [@danchamorro/pi-prompt-enhancer](https://github.com/danchamorro/pi-agent-toolkit/tree/main/packages/prompt-enhancer) for the [pi coding agent](https://github.com/badlogic/pi-mono), extending it with a **configurable dedicated model** for prompt enhancement.
+A [pi coding agent](https://github.com/badlogic/pi-mono) extension that rewrites your prompts to be clearer, more specific, and more actionable.
 
-Instead of always using whatever model is currently active in your session, you can pin a specific model (e.g. a free GitHub Copilot model) that is used exclusively for enhancement — regardless of what you have selected for regular coding work.
+Forked from [@danchamorro/pi-prompt-enhancer](https://github.com/danchamorro/pi-agent-toolkit/tree/main/packages/prompt-enhancer), extended with a **configurable dedicated model**, **side-by-side comparison popup**, **version history**, and **quick enhance mode**.
+
+> **Migration:** This package was previously published as `pi-prompt-enhancer`. Install `@dxvapor/pi-prompt-enhancer` going forward.
 
 ---
 
 ## Features
 
-- `Ctrl+Shift+E` — enhance the current editor text in-place
-- `Ctrl+Shift+Z` — restore original prompt (undo enhancement)
-- `/enhance <prompt>` — enhance inline text, place result in editor
-- `/enhance-model` — interactive picker to set the enhancement model from your configured providers
-- Status bar indicator showing the currently pinned model (`✨ gpt-5-mini`)
-- Global and project-level config, with project taking precedence
-- Merge-safe config writes — other keys in the JSON are preserved
+### Two Enhancement Modes
+
+| Mode | Shortcut | Description |
+|------|----------|-------------|
+| **Full Enhance** | `Ctrl+Shift+E` | Runs enhancement + shows comparison popup. Accept, reject, or chain another enhancement. Supports undo. History tracked automatically. |
+| **Quick Enhance** | `Ctrl+Shift+Q` | In-place enhancement, no popup. Fast path when you already know you want it enhanced. |
+| **Undo** | `Ctrl+Shift+Z` | Restores original prompt before enhancement |
+
+### Comparison Popup
+
+After `Ctrl+Shift+E`, a side-by-side overlay shows `ORIGINAL` and `ENHANCED` prompts:
+
+- `Enter` / `A` — **Accept** enhanced prompt into editor
+- `R` — **Reject** and restore the original
+- `E` — **Enhance Again** — chain further enhancement on the result
+- `Esc` — Cancel without changes
+
+### Version History
+
+Every enhancement is recorded in a version table (tag, summary, timestamp). Access it anytime:
+
+- **Shortcut:** `Ctrl+Shift+H`
+- **Command:** `/enhance-history`
+
+History table shows: `Tag | Summary | Time`. Navigate with `↑↓`, `Enter` to load a previous version back into the editor. History persists across pi restarts via session entries.
+
+### Configurable Dedicated Model
+
+Pin a specific model for enhancement (e.g. a free GitHub Copilot model) regardless of what model is active in your coding session. Falls back to active session model when none is configured.
+
+Change it quickly without leaving the keyboard: `Ctrl+Shift+M` opens the model picker and saves to project config. The current draft in the editor is preserved.
+
+### Searchable Model Picker
+
+`/enhance-model` opens a filterable overlay. Type to search, `↑↓` navigate, `Enter` select. No need to edit JSON by hand.
+
+### Status Bar Indicator
+
+Shows `✨ <model-id>` when a model is pinned, and briefly `✨ Enhancing (<model>)...` while running.
 
 ---
 
@@ -27,15 +61,21 @@ Instead of always using whatever model is currently active in your session, you 
 
 ## Installation
 
-### Option A — `extensions` entry in `settings.json` (recommended)
+### Option A — `pi install` (recommended)
 
-Clone the repo somewhere on your machine:
+```bash
+pi install npm:@dxvapor/pi-prompt-enhancer
+```
+
+### Option B — `extensions` entry in `settings.json`
+
+Clone the repo anywhere on your machine:
 
 ```bash
 git clone https://github.com/DxVapor/pi-prompt-enhancer.git ~/projects/pi-prompt-enhancer
 ```
 
-Add it to `~/.pi/agent/settings.json`:
+Add to `~/.pi/agent/settings.json`:
 
 ```json
 {
@@ -47,13 +87,14 @@ Add it to `~/.pi/agent/settings.json`:
 
 Then run `/reload` inside pi.
 
-### Option B — copy into the extensions directory
+### Option C — copy into the extensions directory
 
 ```bash
+mkdir -p ~/.pi/agent/extensions/prompt-enhancer
 cp ~/projects/pi-prompt-enhancer/{index.ts,clean.ts} ~/.pi/agent/extensions/prompt-enhancer/
 ```
 
-> **Note:** If you previously had `"npm:@danchamorro/pi-prompt-enhancer"` in your `packages` list, remove it first to avoid duplicate command registration.
+> **Note:** If you previously had `@danchamorro/pi-prompt-enhancer` or `pi-prompt-enhancer` in your `packages` list, remove it first to avoid duplicate command registration.
 
 ---
 
@@ -64,9 +105,9 @@ cp ~/projects/pi-prompt-enhancer/{index.ts,clean.ts} ~/.pi/agent/extensions/prom
 Run `/enhance-model` inside pi. Two sequential prompts appear:
 
 1. **Scope** — global (all projects) or project-local
-2. **Model** — every model that has auth configured in pi's registry
+2. **Model** — fuzzy-searchable list of every model with auth configured
 
-There is a **"↩ Use active session model"** option at the top to clear a previously pinned model.
+There is a **"(use active session model)"** option at the top to clear a previously pinned model.
 
 The command writes to the JSON config file automatically (creating directories as needed).
 
@@ -84,13 +125,13 @@ The command writes to the JSON config file automatically (creating directories a
 <project-root>/.pi/extensions/prompt-enhancer.json
 ```
 
-Both files use the same format:
+Format:
 
 ```json
 { "model": "gpt-5-mini" }
 ```
 
-`model` must match the `id` of a model in pi's registry. Run `/model` inside pi to browse available IDs.
+`model` must match the `id` of a model in pi's registry.
 
 ### Model resolution order
 
@@ -100,50 +141,60 @@ Both files use the same format:
 | 2 | `model` in global config (`~/.pi/agent/extensions/prompt-enhancer.json`) |
 | 3 | Active session model — original upstream behaviour |
 
-> **Tip:** When the same model ID exists under multiple providers (e.g. `gpt-5-mini` appears under both `azure-openai-responses` and `github-copilot`), the extension picks the first one that has auth configured — so you always get a working model rather than a silent failure.
+> **Tip:** When the same model ID exists under multiple providers (e.g. `gpt-5-mini` under both `azure-openai-responses` and `github-copilot`), the extension picks the first one that has auth configured.
 
 ---
 
 ## Usage
 
-| Key / Command | Action |
-|---|---|
-| `Ctrl+Shift+E` | Enhance editor text in-place |
-| `Ctrl+Shift+Z` | Restore original (undo) |
-| `/enhance <prompt>` | Enhance inline text, place result in editor |
-| `/enhance-model` | Pick or reset the dedicated enhancement model |
+### Shortcuts
 
-The status bar shows `✨ <model-id>` when a model is pinned. While enhancement is running it briefly shows `✨ Enhancing (<model-name>)...`.
+| Keybind | Action |
+|---------|--------|
+| `Ctrl+Shift+E` | Full enhance — popup with original vs enhanced comparison |
+| `Ctrl+Shift+Q` | Quick enhance — in-place, no popup |
+| `Ctrl+Shift+Z` | Undo — restore original prompt |
+| `Ctrl+Shift+H` | Open version history table |
+| `Ctrl+Shift+M` | Quick pick enhancement model (project scope) |
+
+### Commands
+
+| Command | Action |
+|---------|--------|
+| `/enhance <prompt>` | Enhance inline text, place result in editor |
+| `/enhance-model` | Fuzzy-searchable model picker |
+| `/enhance-history` | Browse prompt version history |
 
 ---
 
-## How it differs from the upstream
+## Differences from upstream
 
-| | [@danchamorro/pi-prompt-enhancer](https://github.com/danchamorro/pi-agent-toolkit/tree/main/packages/prompt-enhancer) | This fork |
+| | [@danchamorro/pi-prompt-enhancer](https://github.com/danchamorro/pi-agent-toolkit/tree/main/packages/prompt-enhancer) | `@dxvapor/pi-prompt-enhancer` |
 |---|---|---|
 | Model used | Active session model | Config file → fallback to active model |
 | Config | — | `prompt-enhancer.json` (global + project) |
-| Model picker | — | `/enhance-model` command |
+| Model picker | — | Fuzzy-searchable `/enhance-model` |
+| Comparison popup | — | Side-by-side original vs enhanced after `Ctrl+Shift+E` |
+| Version history | — | Persistent version table via `Ctrl+Shift+H` |
+| Quick enhance | — | `Ctrl+Shift+Q` for no-popup enhancement |
 | Status bar | — | `✨ <model-id>` when pinned |
 | Duplicate provider fix | — | Searches authed models first |
-
-The system prompt, enhancement logic, `clean()`, and all shortcuts are unchanged from upstream.
 
 ---
 
 ## Contributing
 
-Contributions are welcome. Please open an issue before submitting a large PR so we can discuss the approach first.
+Contributions welcome. Open an issue before large PRs.
 
 1. Fork the repo and create a branch: `git checkout -b feat/your-feature`
-2. Make your changes
-3. Commit using [Conventional Commits](https://www.conventionalcommits.org/): `feat(config): add support for per-session overrides`
+2. Make changes
+3. Commit using [Conventional Commits](https://www.conventionalcommits.org/)
 4. Open a pull request against `main`
 
-For bug reports, please include:
+For bug reports, include:
 - pi version (`pi --version`)
-- Contents of your `prompt-enhancer.json` (redact any keys)
-- The error notification or behaviour you observed
+- `prompt-enhancer.json` contents (redact keys)
+- Observed error or behaviour
 
 ---
 

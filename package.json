@@ -1,7 +1,7 @@
 {
-  "name": "pi-prompt-enhancer",
-  "version": "1.0.0",
-  "description": "Enhance prompts with a configurable dedicated model — fork of @danchamorro/pi-prompt-enhancer",
+  "name": "@dxvapor/pi-prompt-enhancer",
+  "version": "1.2.0",
+  "description": "Prompt enhancer with comparison popup, version history, searchable model picker, and quick-enhance mode",
   "keywords": [
     "pi-package",
     "pi",
@@ -15,6 +15,9 @@
   ],
   "license": "MIT",
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "files": [
     "index.ts",
     "clean.ts"
